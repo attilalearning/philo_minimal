@@ -31,7 +31,7 @@ void	*philo_life_cycle(void *arg)
 	pe = (t_philo_env *)arg;
 	i = pe->philo_idx;
 	philo = &pe->sim->philos[i];
-	idle_time_micros = 10000 * (10 / philo->name);
+	idle_time_micros = 100000 * (10 / philo->name);
 	safeint_set_value(&philo->idle_time, idle_time_micros);
 	safeint_set_value(&philo->total_time_lived_micros, 0);
 	printf("philo %d -- thread created, waiting for start\n",
@@ -41,11 +41,18 @@ void	*philo_life_cycle(void *arg)
 	printf("philo %d -- NOW RUNNING " \
 		"(idle time set to %d micro seconds)...\n",
 			philo->name, idle_time_micros);
-	while (1)
+	// run the binary multiple times, like, on my laptop, the 1st and 2nd
+	// runs are are behaving differently: 1st run will hang, the 2nd run
+	// will keep on going for infinity, for:
+	// ./bin/philo 2 -300
+	while ((safeint_get_value(pe->sim->is_running) // thiw does not work!
+			|| !safeint_get_value(philo->is_deceased)))
 	{
-		if (!safeint_get_value(pe->sim->is_running)
-			|| safeint_get_value(philo->is_deceased))
-			break ;
+	//while (1) // this works (uncomment lines 51 -> 55)
+	//{
+	//	if (!safeint_get_value(pe->sim->is_running)
+	//		|| safeint_get_value(philo->is_deceased))
+	//		break ;
 		printf("philo %d -- 'while loop' or 'living' AND " \
 			"usleep-ing %d micro seconds", philo->name, idle_time_micros);
 		safeint_inc_value(&philo->total_time_lived_micros, idle_time_micros);
@@ -100,14 +107,14 @@ int	main(int argc, char **argv)
 		philo = &sim.philos[i];
 		if ((sim.ttd_ms
 			&& safeint_get_value(philo->total_time_lived_micros) >= sim.ttd_ms * 1000)
-			|| (sim.philo_to_die && i == sim.philo_to_die
+			|| (sim.philo_to_die && philo->name == sim.philo_to_die
 			&& safeint_get_value(philo->total_time_lived_micros) >= random_ttd_ms * 1000))
 		{
 			safeint_set_value(&philo->is_deceased, true);
 			safeint_set_value(&sim.is_running, false);
 			break ;
 		}
-		usleep(10000);
+		usleep(100); //if this is not here, no matter how the philo_life_cycle is written, this while loop won't detect philo deaths...
 		i++;
 		if (i >= sim.no_of_philos)
 			i = 0;
