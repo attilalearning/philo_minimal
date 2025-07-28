@@ -1,0 +1,4 @@
+philo/bin
+philo/bin/*
+philo/obj
+philo/obj/*
